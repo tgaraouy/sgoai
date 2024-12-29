@@ -1,18 +1,22 @@
-import type { Config } from "tailwindcss";
+const defaultTheme = require("tailwindcss/defaultTheme");
 
-export default {
+module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        primary: "#0e8c7f",
+        secondary: "#f7a800",
+        neutral: "#f0f0f0",
+        text: "#333333",
+      },
+      fontFamily: {
+        sans: ["Roboto", ...defaultTheme.fontFamily.sans],
       },
     },
   },
   plugins: [],
-} satisfies Config;
+};

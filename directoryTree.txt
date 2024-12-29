@@ -1,0 +1,107 @@
+📄 .env.local
+📄 .gitignore
+📁 .next
+  📄 app-build-manifest.json
+  📄 build-manifest.json
+  📁 cache
+    📄 .rscinfo
+  📄 fallback-build-manifest.json
+  📄 package.json
+  📄 react-loadable-manifest.json
+  📁 server
+    📄 app-paths-manifest.json
+    📁 chunks
+      📄 [root of the server]__043e35._.js
+      📄 [root of the server]__043e35._.js.map
+      📄 [turbopack]_runtime.js
+      📄 [turbopack]_runtime.js.map
+    📄 interception-route-rewrite-manifest.js
+    📄 middleware-build-manifest.js
+    📄 middleware-manifest.json
+    📄 middleware-react-loadable-manifest.js
+    📄 next-font-manifest.js
+    📄 next-font-manifest.json
+    📁 pages
+      📁 api
+        📁 ai
+          📁 ask
+            📄 next-font-manifest.json
+            📄 pages-manifest.json
+            📄 react-loadable-manifest.json
+          📄 ask.js
+          📄 ask.js.map
+    📄 pages-manifest.json
+    📄 server-reference-manifest.js
+    📄 server-reference-manifest.json
+  📁 static
+    📁 development
+      📄 _buildManifest.js
+      📄 _clientMiddlewareManifest.json
+      📄 _ssgManifest.js
+  📄 trace
+  📁 types
+📁 .vscode
+  📄 extensions.json
+  📄 launch.json
+  📄 settings.json
+📄 eslint.config.mjs
+📄 generateDirTree.js
+📄 next-env.d.ts
+📄 next.config.ts
+📄 package-lock.json
+📄 package.json
+📄 postcss.config.mjs
+📁 public
+  📄 file.svg
+  📄 globe.svg
+  📁 icons
+  📄 manifest.json
+  📄 next.svg
+  📄 vercel.svg
+  📄 window.svg
+📄 README.md
+📁 src
+  📁 app
+    📁 api
+      📁 ai
+        📁 ask
+          📄 route.ts
+        📁 chat
+          📄 route.ts
+        📁 cultural
+          📄 route.ts
+        📁 pronunciation
+          📄 route.ts
+      📁 auth
+      📁 trpc
+    📁 auth
+    📁 dashboard
+      📄 page.tsx
+    📄 favicon.ico
+    📄 globals.css
+    📄 layout.tsx
+    📁 learn
+      📄 page.tsx
+    📄 page.tsx
+  📁 components
+    📁 auth
+    📁 core
+      📄 ai-chat.tsx
+      📄 pronunciation-check.tsx
+    📄 index.ts
+    📁 ui
+      📄 ai-chat.tsx
+      📄 pronunciation-check.tsx
+  📁 lib
+    📁 ai
+    📁 api
+    📁 auth
+      📄 auth-options.ts
+      📄 auth.ts
+    📁 db
+    📄 index.ts
+  📁 types
+    📄 index.ts
+  📁 typesbih
+📄 tailwind.config.ts
+📄 tsconfig.json
