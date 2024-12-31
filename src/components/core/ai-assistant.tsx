@@ -10,18 +10,18 @@ import { offlineManager } from "@/lib/storage/offlineManager";
 import {
   ArrowLeft,
   Bookmark,
+  Building2,
+  Car,
   ChevronRight,
-  Coffee,
-  Hotel,
+  Coffee, // instead of Hotel
   Loader2,
   Map,
   MessageCircle,
   Send,
   ShoppingCart,
-  Star,
-  Taxi,
-  Utensils,
-  VolumeUp,
+  Star, // instead of Taxi
+  UtensilsCrossed, // instead of Utensils
+  Volume2,
 } from "lucide-react";
 import React from "react";
 
@@ -74,13 +74,13 @@ const aiModes: AIMode[] = [
       {
         id: "transport",
         name: "Taxis & Transport",
-        icon: Taxi,
+        icon: Car,
         color: "text-yellow-500",
       },
       {
         id: "restaurant",
         name: "Restaurants",
-        icon: Utensils,
+        icon: UtensilsCrossed,
         color: "text-red-500",
       },
       {
@@ -92,7 +92,7 @@ const aiModes: AIMode[] = [
       {
         id: "hotel",
         name: "Hotel & Accommodation",
-        icon: Hotel,
+        icon: Building2,
         color: "text-purple-500",
       },
     ],
@@ -319,14 +319,33 @@ export function AIAssistant() {
           Choose Your AI Agent:
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: "1.5rem",
+            width: "100%",
+          }}
+        >
           {aiModes.map((mode) => (
             <button
               key={mode.id}
               onClick={() => setSelectedMode(mode.id)}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#006E90] 
-                       hover:bg-[#006E90]/5 group transition-all duration-300 
-                       bg-white shadow-sm flex flex-col items-center"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "1.5rem",
+                borderWidth: "2px",
+                borderStyle: "solid",
+                borderColor: "#e5e7eb",
+                borderRadius: "1rem",
+                transition: "all 300ms",
+                backgroundColor: "white",
+                minWidth: "250px",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+              }}
+              className="hover:border-[#006E90] hover:bg-[#006E90]/5 group"
             >
               <div className="flex flex-col items-center text-center gap-4">
                 <div className="p-4 rounded-full bg-[#006E90]/10 group-hover:bg-[#006E90]/20 transition-colors">
@@ -348,48 +367,94 @@ export function AIAssistant() {
     );
   }
 
-  // If in tutor mode and no scenario selected, show scenarios
+  // Inside the AIAssistant component, for the scenario selection view:
   if (selectedMode === "tutor" && !selectedScenario) {
-    const currentMode = aiModes.find((m) => m.id === "tutor")!;
+    const tutorMode = aiModes.find((m) => m.id === "tutor")!;
+
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={resetChat} className="mr-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+      <div className="flex flex-col min-h-screen">
+        {/* Header */}
+        <div className="flex items-center gap-4 p-4">
+          <Button
+            variant="ghost"
+            onClick={resetChat}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-          <h2 className="text-xl font-semibold">Choose a Scenario</h2>
+          <h2 className="text-xl">Choose a Scenario</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {currentMode.scenarios?.map((scenario) => {
-            const Icon = scenario.icon;
-            return (
-              <button
-                key={scenario.id}
-                onClick={() => setSelectedScenario(scenario.id)}
-                className="p-6 border rounded-lg hover:border-primary transition-colors 
-                         flex flex-col items-center gap-3"
-              >
-                <Icon className={`w-8 h-8 ${scenario.color}`} />
-                <span className="text-lg font-medium">{scenario.name}</span>
-              </button>
-            );
-          })}
+        {/* Main Content with Grid Layout */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: "1.5rem",
+            width: "100%",
+            padding: "2rem",
+          }}
+        >
+          <button
+            onClick={() => setSelectedScenario("cafe")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Coffee className="w-8 h-8 mb-2" />
+            <span>Café & Drinks</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedScenario("shopping")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <ShoppingCart className="w-8 h-8 mb-2" />
+            <span>Shopping & Haggling</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedScenario("transport")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Car className="w-8 h-8 mb-2" />
+            <span>Taxis & Transport</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedScenario("restaurants")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <UtensilsCrossed className="w-8 h-8 mb-2" />
+            <span>Restaurants</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedScenario("directions")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Map className="w-8 h-8 mb-2" />
+            <span>Asking Directions</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedScenario("hotel")}
+            className="flex flex-col items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Building2 className="w-8 h-8 mb-2" />
+            <span>Hotel & Accommodation</span>
+          </button>
         </div>
 
         {/* Saved Phrases Section */}
-        <div className="mt-6">
-          <Button
-            variant="outline"
+        <div className="mt-auto p-4 border-t">
+          <button
             onClick={() => setShowSaved(!showSaved)}
-            className="w-full"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
-            <Bookmark className="w-4 h-4 mr-2" />
-            Saved Phrases ({savedPhrases.length})
-          </Button>
+            <Bookmark className="w-5 h-5" />
+            <span>Saved Phrases ({savedPhrases.length})</span>
+          </button>
         </div>
-
         {showSaved && savedPhrases.length > 0 && (
           <Card className="mt-4 p-4">
             <ScrollArea className="h-[300px]">
@@ -461,7 +526,7 @@ export function AIAssistant() {
                       {currentPhrase.darija}
                     </p>
                     <button className="p-2 hover:bg-gray-100 rounded-full">
-                      <VolumeUp className="w-6 h-6 text-gray-600" />
+                      <Volume2 className="w-6 h-6 text-gray-600" />
                     </button>
                   </div>
                   <p className="text-lg text-gray-600 mb-2">
