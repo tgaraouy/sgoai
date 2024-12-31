@@ -1,420 +1,521 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/db/supabase";
+import { offlineManager } from "@/lib/storage/offlineManager";
 import {
-  BookOpen,
-  Brain,
-  CalendarDays,
-  Car,
-  Clock,
+  ArrowLeft,
+  Bookmark,
+  ChevronRight,
   Coffee,
-  Globe2,
+  Hotel,
   Loader2,
-  MapPin,
+  Map,
   MessageCircle,
-  Navigation,
-  Phone,
   Send,
-  ShoppingBag,
+  ShoppingCart,
   Star,
+  Taxi,
+  Utensils,
+  VolumeUp,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import React from "react";
 
 interface AIMode {
   id: string;
   name: string;
-  icon: any;
-  color: string;
+  icon: string;
   description: string;
-  features: string[];
-}
-
-interface AIMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
-
-interface AIContext {
-  mode: string;
-  travelStatus: "current" | "planning" | null;
-  location: string | string[];
-  interests: string[];
+  promptContext: string;
+  suggestedQuestions: string[];
+  scenarios?: {
+    id: string;
+    name: string;
+    icon: any;
+    color: string;
+  }[];
 }
 
 const aiModes: AIMode[] = [
   {
     id: "tutor",
-    name: "Language Tutor",
-    icon: BookOpen,
-    color: "blue",
-    description: "Personalized language learning with adaptive exercises",
-    features: [
-      "Custom learning paths",
-      "Pronunciation feedback",
-      "Progress tracking",
-      "Contextual practice",
+    name: "Darija Tutor",
+    icon: "📚",
+    description: "Conversational Darija learning Phrases Make it Easy",
+    promptContext: `You are a Darija (Moroccan Arabic) language tutor. 
+    Always provide phrases with: 
+    1) Darija text in Arabic script
+    2) Pronunciation in Latin letters
+    3) English translation
+    4) Usage examples
+    5) Cultural context when relevant`,
+    suggestedQuestions: [
+      "How do I say 'hello'?",
+      "Basic shopping phrases",
+      "Numbers 1-10 in Darija",
+    ],
+    scenarios: [
+      {
+        id: "cafe",
+        name: "Café & Drinks",
+        icon: Coffee,
+        color: "text-brown-500",
+      },
+      {
+        id: "shopping",
+        name: "Shopping & Haggling",
+        icon: ShoppingCart,
+        color: "text-green-500",
+      },
+      {
+        id: "transport",
+        name: "Taxis & Transport",
+        icon: Taxi,
+        color: "text-yellow-500",
+      },
+      {
+        id: "restaurant",
+        name: "Restaurants",
+        icon: Utensils,
+        color: "text-red-500",
+      },
+      {
+        id: "directions",
+        name: "Asking Directions",
+        icon: Map,
+        color: "text-blue-500",
+      },
+      {
+        id: "hotel",
+        name: "Hotel & Accommodation",
+        icon: Hotel,
+        color: "text-purple-500",
+      },
     ],
   },
   {
     id: "cultural",
     name: "Cultural Guide",
-    icon: Globe2,
-    color: "purple",
+    icon: "🌍",
     description: "Deep cultural insights and situational guidance",
-    features: [
-      "Cultural context",
-      "Local customs",
-      "Social etiquette",
-      "Regional variations",
+    promptContext:
+      "You are a Moroccan cultural expert. Provide detailed cultural context and practical tips for respectful interaction.",
+    suggestedQuestions: [
+      "Appropriate dress code",
+      "Greeting customs",
+      "Dining etiquette",
     ],
   },
   {
     id: "local",
     name: "Local Expert",
-    icon: Navigation,
-    color: "green",
+    icon: "📍",
     description: "Real-time local recommendations and insights",
-    features: [
-      "Live events",
-      "Hidden gems",
-      "Local tips",
-      "Weather-aware suggestions",
+    promptContext:
+      "You are a local Moroccan expert. Provide specific local recommendations with timing, pricing, and insider tips.",
+    suggestedQuestions: [
+      "Best time to visit markets",
+      "Local food specialties",
+      "Hidden gems nearby",
     ],
   },
   {
     id: "companion",
     name: "Travel Companion",
-    icon: Brain,
-    color: "orange",
+    icon: "🧠",
     description: "Smart travel assistance and situation handling",
-    features: [
-      "Navigation help",
-      "Emergency assistance",
-      "Real-time translation",
-      "Local emergency contacts",
+    promptContext:
+      "You are a travel companion in Morocco. Help with practical situations and provide safety-focused advice.",
+    suggestedQuestions: [
+      "Getting around safely",
+      "Emergency contacts",
+      "Common scams to avoid",
     ],
   },
 ];
 
-const MOROCCAN_CITIES = [
-  "Marrakech",
-  "Fes",
-  "Casablanca",
-  "Tangier",
-  "Rabat",
-  "Other",
-];
+interface Message {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
 
-const INTERESTS = [
-  { label: "Basic Conversations", icon: MessageCircle },
-  { label: "Shopping & Bargaining", icon: ShoppingBag },
-  { label: "Food & Dining", icon: Coffee },
-  { label: "Transportation", icon: Car },
-  { label: "Cultural Activities", icon: Globe2 },
-  { label: "Emergency Situations", icon: Phone },
-];
-
-async function getAIResponse(messages: AIMessage[], context: AIContext) {
-  try {
-    const response = await fetch("/api/ai/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, context }),
-    });
-
-    if (!response.ok) {
-      throw new Error("AI request failed");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("AI Service Error:", error);
-    throw error;
-  }
+interface DarijaPhrase {
+  id: string;
+  darija: string;
+  phonetic_transcription: string;
+  translations: {
+    english: string;
+    french: string;
+  };
+  category: {
+    english: string;
+  };
+  scenario: {
+    english: string;
+  };
+  usage_contexts: {
+    situational_examples: string[];
+  };
 }
 
 export function AIAssistant() {
-  // Core state
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
-  const [travelStatus, setTravelStatus] = useState<
-    "current" | "planning" | null
-  >(null);
-  const [currentCity, setCurrentCity] = useState<string | null>(null);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [plannedCities, setPlannedCities] = useState<string[]>([]);
+  const [selectedMode, setSelectedMode] = React.useState<string | null>(null);
+  const [selectedScenario, setSelectedScenario] = React.useState<string | null>(
+    null
+  );
+  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [phrases, setPhrases] = React.useState<DarijaPhrase[]>([]);
+  const [currentPhraseIndex, setCurrentPhraseIndex] = React.useState(0);
+  const [savedPhrases, setSavedPhrases] = React.useState<DarijaPhrase[]>([]);
+  const [isOffline, setIsOffline] = React.useState(!navigator.onLine);
+  const [showSaved, setShowSaved] = React.useState(false);
 
-  // Chat state
-  const [messages, setMessages] = useState<AIMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  // Auto-scroll effect
-  useEffect(() => {
+  React.useEffect(() => {
+    setSavedPhrases(offlineManager.getSavedPhrases());
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedScenario) {
+      loadPhrases(selectedScenario);
+    }
+  }, [selectedScenario]);
+
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  const handleInterestToggle = (interest: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const handleCityToggle = (city: string) => {
-    setPlannedCities((prev) =>
-      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
-    );
-  };
-
-  const handleStartExperience = async () => {
-    if (!selectedMode || !travelStatus) return;
-
-    const context: AIContext = {
-      mode: selectedMode,
-      travelStatus,
-      location: travelStatus === "current" ? currentCity! : plannedCities,
-      interests: selectedInterests,
-    };
-
-    setIsLoading(true);
+  const loadPhrases = async (scenario: string) => {
     try {
-      const systemMessage: AIMessage = {
-        role: "system",
-        content: `You are the ${selectedMode} AI assistant for a user who is ${
-          travelStatus === "current" ? "currently in" : "planning to visit"
-        } Morocco. Their interests include: ${selectedInterests.join(", ")}.`,
-      };
+      if (isOffline) {
+        const cachedPhrases = offlineManager.getCachedPhrases();
+        setPhrases(
+          cachedPhrases.filter((p) => p.category.english === scenario)
+        );
+        return;
+      }
 
-      const initialMessage: AIMessage = {
-        role: "assistant",
-        content: `Hi! I'm your ${
-          aiModes.find((m) => m.id === selectedMode)?.name
-        } assistant. How can I help you with your ${
-          travelStatus === "current" ? "stay" : "trip planning"
-        } in Morocco?`,
-      };
+      const { data, error } = await supabase
+        .from("darija_phrases")
+        .select("*")
+        .eq("category->english", scenario)
+        .order("likes", { ascending: false });
 
-      setMessages([systemMessage, initialMessage]);
-      setHasStarted(true);
+      if (error) throw error;
+      if (data) {
+        setPhrases(data as DarijaPhrase[]);
+        setCurrentPhraseIndex(0);
+        offlineManager.cacheEssentialPhrases(data as DarijaPhrase[]);
+      }
     } catch (error) {
-      console.error("Error starting experience:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error loading phrases:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load phrases for this scenario",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const handleSendMessage = async (messageText: string = inputMessage) => {
+    if (!messageText.trim() || !selectedMode || isLoading) return;
 
-    const newUserMessage: AIMessage = {
-      role: "user",
-      content: inputMessage,
-    };
+    setIsLoading(true);
+    const selectedModeData = aiModes.find((m) => m.id === selectedMode);
+    let contextualPrompt = selectedModeData?.promptContext || "";
 
-    setMessages((prev) => [...prev, newUserMessage]);
+    // Add current phrase context if in tutor mode and viewing a phrase
+    if (selectedMode === "tutor" && phrases[currentPhraseIndex]) {
+      const currentPhrase = phrases[currentPhraseIndex];
+      contextualPrompt += `\nCurrent phrase being discussed:
+        Darija: ${currentPhrase.darija}
+        Pronunciation: ${currentPhrase.phonetic_transcription}
+        English: ${currentPhrase.translations.english}
+        Usage: ${currentPhrase.usage_contexts.situational_examples.join(", ")}`;
+    }
+
+    const newMessage: Message = { role: "user", content: messageText };
+    setMessages((prev) => [...prev, newMessage]);
     setInputMessage("");
-    setIsLoading(true);
 
     try {
-      const context: AIContext = {
-        mode: selectedMode!,
-        travelStatus,
-        location: travelStatus === "current" ? currentCity! : plannedCities,
-        interests: selectedInterests,
-      };
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, newMessage],
+          mode: selectedMode,
+          context: contextualPrompt,
+        }),
+      });
 
-      const response = await getAIResponse(
-        [...messages, newUserMessage],
-        context
-      );
+      if (!response.ok) throw new Error("Failed to get response");
 
-      const assistantMessage: AIMessage = {
-        role: "assistant",
-        content: response.message,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      const data = await response.json();
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.message },
+      ]);
     } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage: AIMessage = {
-        role: "assistant",
-        content: "I apologize, but I encountered an error. Please try again.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error("Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderModeCard = (mode: AIMode) => (
-    <Card
-      key={mode.id}
-      className={`cursor-pointer transition-all hover:ring-2 hover:ring-${
-        mode.color
-      }-500 ${
-        selectedMode === mode.id
-          ? `ring-2 ring-${mode.color}-500 bg-${mode.color}-50`
-          : ""
-      }`}
-      onClick={() => setSelectedMode(mode.id)}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-lg bg-${mode.color}-100`}>
-            <mode.icon className={`h-6 w-6 text-${mode.color}-600`} />
-          </div>
-          <div>
-            <h4 className="font-semibold">{mode.name}</h4>
-            <p className="text-sm text-gray-600">{mode.description}</p>
-          </div>
-        </div>
-        {selectedMode === mode.id && (
-          <div className="mt-3 space-y-2">
-            <p className="text-sm font-medium">Features:</p>
-            <ul className="text-sm text-gray-600 space-y-1">
-              {mode.features.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <Star className="h-3 w-3" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const handleSavePhrase = (phrase: DarijaPhrase) => {
+    const saved = offlineManager.savePhrase(phrase);
+    if (saved) {
+      setSavedPhrases(offlineManager.getSavedPhrases());
+      toast({
+        title: "Phrase Saved",
+        description: "This phrase is now available offline",
+      });
+    }
+  };
 
-  const renderInterests = () => (
-    <div>
-      <h3 className="font-medium mb-2">What interests you most?</h3>
-      <div className="grid grid-cols-2 gap-2">
-        {INTERESTS.map((interest) => (
-          <Button
-            key={interest.label}
-            variant="outline"
-            className={`justify-start ${
-              selectedInterests.includes(interest.label)
-                ? "ring-2 ring-blue-500 bg-blue-50"
-                : ""
-            }`}
-            onClick={() => handleInterestToggle(interest.label)}
-          >
-            <interest.icon className="h-4 w-4 mr-2" />
-            {interest.label}
+  const resetChat = () => {
+    setSelectedMode(null);
+    setSelectedScenario(null);
+    setMessages([]);
+    setInputMessage("");
+    setPhrases([]);
+    setCurrentPhraseIndex(0);
+  };
+
+  if (!selectedMode) {
+    return (
+      <div className="container mx-auto p-4">
+        <h3 className="text-2xl font-medium mt-8 mb-6 text-center text-[#006E90]">
+          Choose Your AI Agent:
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {aiModes.map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setSelectedMode(mode.id)}
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#006E90] 
+                       hover:bg-[#006E90]/5 group transition-all duration-300 
+                       bg-white shadow-sm flex flex-col items-center"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="p-4 rounded-full bg-[#006E90]/10 group-hover:bg-[#006E90]/20 transition-colors">
+                  <span className="text-4xl">{mode.icon}</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-xl mb-3 text-[#006E90] group-hover:text-[#006E90]">
+                    {mode.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 max-w-[200px] mx-auto leading-relaxed">
+                    {mode.description}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // If in tutor mode and no scenario selected, show scenarios
+  if (selectedMode === "tutor" && !selectedScenario) {
+    const currentMode = aiModes.find((m) => m.id === "tutor")!;
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" onClick={resetChat} className="mr-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
           </Button>
-        ))}
-      </div>
-    </div>
-  );
+          <h2 className="text-xl font-semibold">Choose a Scenario</h2>
+        </div>
 
-  const renderTravelStatus = () => (
-    <div className="space-y-4">
-      <h3 className="font-medium mb-2">Your Travel Status</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <Button
-          variant="outline"
-          className={`flex flex-col items-center p-4 h-auto ${
-            travelStatus === "current" ? "ring-2 ring-blue-500 bg-blue-50" : ""
-          }`}
-          onClick={() => setTravelStatus("current")}
-        >
-          <MapPin className="h-6 w-6 mb-2" />
-          <span className="text-sm">I'm in Morocco</span>
-          <span className="text-xs text-gray-600 mt-1">
-            Need immediate help
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          className={`flex flex-col items-center p-4 h-auto ${
-            travelStatus === "planning" ? "ring-2 ring-blue-500 bg-blue-50" : ""
-          }`}
-          onClick={() => setTravelStatus("planning")}
-        >
-          <CalendarDays className="h-6 w-6 mb-2" />
-          <span className="text-sm">Planning a Trip</span>
-          <span className="text-xs text-gray-600 mt-1">
-            Preparing for visit
-          </span>
-        </Button>
-      </div>
-
-      {travelStatus === "current" && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Where in Morocco are you?</p>
-          <div className="grid grid-cols-2 gap-2">
-            {MOROCCAN_CITIES.map((city) => (
-              <Button
-                key={city}
-                variant="outline"
-                className={`justify-start ${
-                  currentCity === city ? "ring-2 ring-blue-500 bg-blue-50" : ""
-                }`}
-                onClick={() => setCurrentCity(city)}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {currentMode.scenarios?.map((scenario) => {
+            const Icon = scenario.icon;
+            return (
+              <button
+                key={scenario.id}
+                onClick={() => setSelectedScenario(scenario.id)}
+                className="p-6 border rounded-lg hover:border-primary transition-colors 
+                         flex flex-col items-center gap-3"
               >
-                <MapPin className="h-4 w-4 mr-2" />
-                {city}
-              </Button>
-            ))}
-          </div>
+                <Icon className={`w-8 h-8 ${scenario.color}`} />
+                <span className="text-lg font-medium">{scenario.name}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      {travelStatus === "planning" && (
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium mb-2">When are you traveling?</p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" />
-                Select Dates
-              </Button>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Duration
-              </Button>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-medium mb-2">
-              Which cities will you visit?
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {MOROCCAN_CITIES.map((city) => (
-                <Button
-                  key={city}
-                  variant="outline"
-                  className={`justify-start ${
-                    plannedCities.includes(city)
-                      ? "ring-2 ring-blue-500 bg-blue-50"
-                      : ""
-                  }`}
-                  onClick={() => handleCityToggle(city)}
-                >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  {city}
-                </Button>
-              ))}
-            </div>
-          </div>
+        {/* Saved Phrases Section */}
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setShowSaved(!showSaved)}
+            className="w-full"
+          >
+            <Bookmark className="w-4 h-4 mr-2" />
+            Saved Phrases ({savedPhrases.length})
+          </Button>
         </div>
-      )}
-    </div>
-  );
 
-  const renderChat = () => (
-    <div className="space-y-4">
-      <ScrollArea className="h-[400px] pr-4">
-        {messages
-          .filter((m) => m.role !== "system")
-          .map((message, index) => (
+        {showSaved && savedPhrases.length > 0 && (
+          <Card className="mt-4 p-4">
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {savedPhrases.map((phrase) => (
+                  <Card key={phrase.id} className="p-3">
+                    <div className="flex justify-between">
+                      <div>
+                        <p className="font-arabic">{phrase.darija}</p>
+                        <p className="text-sm text-gray-600">
+                          {phrase.translations.english}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          offlineManager.removePhrase(phrase.id);
+                          setSavedPhrases(offlineManager.getSavedPhrases());
+                        }}
+                      >
+                        <Star className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  const currentMode = aiModes.find((m) => m.id === selectedMode)!;
+  const currentPhrase = phrases[currentPhraseIndex];
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex flex-col h-[600px] rounded-lg border bg-white">
+        <div className="p-4 border-b flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() =>
+              selectedScenario ? setSelectedScenario(null) : resetChat()
+            }
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+          <h2 className="font-semibold text-lg">
+            {selectedScenario
+              ? currentMode.scenarios?.find((s) => s.id === selectedScenario)
+                  ?.name
+              : currentMode.name}
+          </h2>
+          <div className="w-[70px]" />
+        </div>
+
+        <ScrollArea className="flex-1 p-4">
+          {/* Show current phrase if in tutor mode and scenario selected */}
+          {selectedMode === "tutor" && selectedScenario && currentPhrase && (
+            <Card className="mb-4 p-4">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="flex justify-center items-center gap-3 mb-4">
+                    <p className="text-3xl font-arabic">
+                      {currentPhrase.darija}
+                    </p>
+                    <button className="p-2 hover:bg-gray-100 rounded-full">
+                      <VolumeUp className="w-6 h-6 text-gray-600" />
+                    </button>
+                  </div>
+                  <p className="text-lg text-gray-600 mb-2">
+                    {currentPhrase.phonetic_transcription}
+                  </p>
+                  <p className="text-xl mb-1">
+                    {currentPhrase.translations.english}
+                  </p>
+                  <p className="text-gray-600">
+                    {currentPhrase.translations.french}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-medium">When to use:</h3>
+                  <ul className="space-y-2">
+                    {currentPhrase.usage_contexts.situational_examples.map(
+                      (example, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <ChevronRight className="w-5 h-5 text-gray-400 mt-0.5" />
+                          <span>{example}</span>
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSavePhrase(currentPhrase)}
+                    disabled={offlineManager.isPhraseInSaved(currentPhrase.id)}
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    {offlineManager.isPhraseInSaved(currentPhrase.id)
+                      ? "Saved"
+                      : "Save"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setCurrentPhraseIndex((prev) =>
+                        prev < phrases.length - 1 ? prev + 1 : 0
+                      );
+                    }}
+                  >
+                    Next Phrase
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Chat Messages */}
+          {messages.map((message, index) => (
             <div
               key={index}
               className={`flex ${
@@ -422,89 +523,80 @@ export function AIAssistant() {
               } mb-4`}
             >
               <div
-                className={`max-w-[80%] p-3 rounded-lg ${
+                className={`max-w-[80%] rounded-lg p-3 ${
                   message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
                 }`}
               >
-                <p className="text-sm">{message.content}</p>
+                <p className="whitespace-pre-wrap">{message.content}</p>
               </div>
             </div>
           ))}
-        <div ref={messagesEndRef} />
-      </ScrollArea>
 
-      <div className="flex gap-2">
-        <Textarea
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMessage();
-            }
-          }}
-        />
-        <Button
-          onClick={handleSendMessage}
-          disabled={isLoading || !inputMessage.trim()}
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-
-  const canProceed =
-    selectedMode &&
-    travelStatus &&
-    (travelStatus === "current" ? currentCity : plannedCities.length > 0) &&
-    selectedInterests.length > 0;
-
-  return (
-    <Card className="p-6">
-      <CardHeader>
-        <CardTitle>Welcome to SGoAI</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!hasStarted ? (
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-medium mb-2">Choose Your AI Assistant:</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {aiModes.map((mode) => renderModeCard(mode))}
+          {/* Show suggestions if no messages */}
+          {messages.length === 0 && (
+            <div className="space-y-4">
+              <p className="text-center text-gray-500">
+                Get started with some suggested questions:
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {currentMode.suggestedQuestions.map((question) => (
+                  <Button
+                    key={question}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSendMessage(question)}
+                    className="text-left"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    {question}
+                  </Button>
+                ))}
               </div>
             </div>
+          )}
+          <div ref={messagesEndRef} />
+        </ScrollArea>
 
-            {selectedMode && renderInterests()}
-            {selectedMode &&
-              selectedInterests.length > 0 &&
-              renderTravelStatus()}
-
-            {canProceed && (
-              <Button
-                className="w-full"
-                onClick={handleStartExperience}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                Start My Personalized Experience
-              </Button>
-            )}
+        {/* Chat Input */}
+        <div className="p-4 border-t">
+          <div className="flex gap-2">
+            <Textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder={`Ask about ${
+                currentPhrase ? "this phrase" : "anything"
+              }...`}
+              className="min-h-[60px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+            <Button
+              onClick={() => handleSendMessage()}
+              disabled={isLoading || !inputMessage.trim()}
+              className="px-4"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-        ) : (
-          renderChat()
+        </div>
+
+        {/* Offline Mode Indicator */}
+        {isOffline && (
+          <div className="p-2 bg-yellow-100 text-yellow-800 text-center text-sm">
+            Offline Mode - Using Saved Phrases Only
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
