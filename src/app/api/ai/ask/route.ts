@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const openai = new OpenAIApi(configuration);
 
 export async function POST(request: Request) {
   try {
     const { messages, context } = await request.json();
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
         {
@@ -35,7 +33,7 @@ export async function POST(request: Request) {
     });
 
     const response =
-      completion.data.choices[0].message?.content ||
+      completion.choices[0].message.content ||
       "I apologize, but I am unable to provide a response at this moment.";
 
     return NextResponse.json({ message: response });
