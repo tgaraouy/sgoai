@@ -6,8 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/db/supabase";
-import { DarijaPhrase } from '@/types/darija';
 import { offlineManager } from "@/lib/storage/offlineManager";
+import { DarijaPhrase } from "@/types/darija";
 import {
   ArrowLeft,
   Bookmark,
@@ -216,7 +216,6 @@ export function AIAssistant() {
       toast({
         title: "Error",
         description: "Failed to load phrases for this scenario",
-        variant: "destructive",
       });
     }
   };
