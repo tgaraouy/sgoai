@@ -35,7 +35,7 @@ interface AIMode {
   scenarios?: {
     id: string;
     name: string;
-    icon: any;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     color: string;
   }[];
 }
