@@ -143,6 +143,9 @@ interface Message {
   role: "user" | "assistant" | "system";
   content: string;
 }
+interface AIAssistantProps {
+  initialMode?: string;
+}
 
 export function AIAssistant() {
   const [selectedMode, setSelectedMode] = React.useState<string | null>(null);
