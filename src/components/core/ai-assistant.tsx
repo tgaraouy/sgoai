@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/db/supabase";
+import { DarijaPhrase } from '@/types/darija';
 import { offlineManager } from "@/lib/storage/offlineManager";
 import {
   ArrowLeft,
@@ -141,25 +142,6 @@ const aiModes: AIMode[] = [
 interface Message {
   role: "user" | "assistant" | "system";
   content: string;
-}
-
-interface DarijaPhrase {
-  id: string;
-  darija: string;
-  phonetic_transcription: string;
-  translations: {
-    english: string;
-    french: string;
-  };
-  category: {
-    english: string;
-  };
-  scenario: {
-    english: string;
-  };
-  usage_contexts: {
-    situational_examples: string[];
-  };
 }
 
 export function AIAssistant() {
