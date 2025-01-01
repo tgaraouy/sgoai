@@ -3,7 +3,11 @@ import { AIAssistant } from "@/components/core/ai-assistant";
 //import { LearningCard } from "@/components/learn/LearningCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getPhrases, updateLearningProgress } from "@/lib/db/queries";
+import {
+  DarijaPhrase,
+  getPhrases,
+  updateLearningProgress,
+} from "@/lib/db/queries";
 import { useState } from "react";
 
 interface LearningMode {
