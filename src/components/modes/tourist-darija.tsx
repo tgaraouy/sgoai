@@ -1,4 +1,5 @@
 // src/components/modes/tourist-darija.tsx
+import { useCallback, useEffect, useState } from "react";
 import { EmergencyPhraseSection } from "@/components/emergency/EmergencyPhraseSection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,7 +23,6 @@ import {
   Utensils,
   Volume2,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
 
 const TOURIST_SCENARIOS = [
   {
@@ -128,12 +128,6 @@ export function TouristDarija() {
     };
   }, []);
 
-  useEffect(() => {
-    if (selectedScenario) {
-      loadPhrases(selectedScenario);
-    }
-  }, [selectedScenario, loadPhrases]);
-
   const loadLocationSuggestions = async () => {
     try {
       const location = await locationManager.getCurrentLocation();
@@ -182,6 +176,12 @@ export function TouristDarija() {
     },
     [isOffline, setPhrases, setCurrentPhraseIndex, toast]
   );
+
+  useEffect(() => {
+    if (selectedScenario) {
+      loadPhrases(selectedScenario);
+    }
+  }, [selectedScenario, loadPhrases]);
 
   const handleAIHelp = async () => {
     if (!phrases[currentPhraseIndex]) return;

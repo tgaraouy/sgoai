@@ -1,4 +1,5 @@
 "use client";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,7 +24,6 @@ import {
   UtensilsCrossed, // instead of Utensils
   Volume2,
 } from "lucide-react";
-import React, { useCallback } from "react";
 
 interface AIMode {
   id: string;
@@ -146,50 +146,20 @@ interface AIAssistantProps {
   initialMode?: string;
 }
 
+//export function AIAssistant() {
 export function AIAssistant({ initialMode }: AIAssistantProps) {
-  const [selectedMode, setSelectedMode] = React.useState<string | null>(null);
-  const [selectedScenario, setSelectedScenario] = React.useState<string | null>(
-    null
-  );
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [phrases, setPhrases] = React.useState<DarijaPhrase[]>([]);
-  const [currentPhraseIndex, setCurrentPhraseIndex] = React.useState(0);
-  const [savedPhrases, setSavedPhrases] = React.useState<DarijaPhrase[]>([]);
-  const [isOffline, setIsOffline] = React.useState(!navigator.onLine);
-  const [showSaved, setShowSaved] = React.useState(false);
-
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    setSavedPhrases(offlineManager.getSavedPhrases());
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (selectedScenario) {
-      loadPhrases(selectedScenario);
-    }
-  }, [selectedScenario, loadPhrases]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  React.useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [phrases, setPhrases] = useState<DarijaPhrase[]>([]);
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [savedPhrases, setSavedPhrases] = useState<DarijaPhrase[]>([]);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [showSaved, setShowSaved] = useState(false);
 
   const loadPhrases = useCallback(
     async (scenario: string) => {
@@ -223,8 +193,14 @@ export function AIAssistant({ initialMode }: AIAssistantProps) {
         });
       }
     },
-    [isOffline, setPhrases, setCurrentPhraseIndex, toast]
+    [isOffline, setCurrentPhraseIndex, setPhrases, toast]
   );
+
+  useEffect(() => {
+    if (selectedScenario) {
+      loadPhrases(selectedScenario);
+    }
+  }, [selectedScenario, loadPhrases]);
 
   const handleSendMessage = async (messageText: string = inputMessage) => {
     if (!messageText.trim() || !selectedMode || isLoading) return;
