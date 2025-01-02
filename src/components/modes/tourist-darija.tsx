@@ -10,6 +10,7 @@ import { offlineManager } from "@/lib/storage/offlineManager";
 import {
   AlertTriangle,
   Bookmark,
+  Car,
   ChevronRight,
   Coffee,
   Hotel,
@@ -18,11 +19,10 @@ import {
   MessageCircle,
   ShoppingCart,
   Star,
-  Taxi,
   Utensils,
-  VolumeUp,
+  Volume2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const TOURIST_SCENARIOS = [
   {
@@ -42,7 +42,7 @@ const TOURIST_SCENARIOS = [
   {
     id: "transport",
     name: "Taxis & Transport",
-    icon: Taxi,
+    icon: Car,
     color: "text-yellow-500",
     priority: 1,
   },
@@ -132,7 +132,7 @@ export function TouristDarija() {
     if (selectedScenario) {
       loadPhrases(selectedScenario);
     }
-  }, [selectedScenario]);
+  }, [selectedScenario, loadPhrases]);
 
   const loadLocationSuggestions = async () => {
     try {
@@ -148,38 +148,40 @@ export function TouristDarija() {
     }
   };
 
-  const loadPhrases = async (scenario: string) => {
-    try {
-      if (isOffline) {
-        const cachedPhrases = offlineManager.getCachedPhrases();
-        setPhrases(
-          cachedPhrases.filter((p) => p.category.english === scenario)
-        );
-        return;
-      }
+  const loadPhrases = useCallback(
+    async (scenario: string) => {
+      try {
+        if (isOffline) {
+          const cachedPhrases = offlineManager.getCachedPhrases();
+          setPhrases(
+            cachedPhrases.filter((p) => p.category.english === scenario)
+          );
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from("darija_phrases")
-        .select("*")
-        .eq("category->english", scenario)
-        .order("likes", { ascending: false });
+        const { data, error } = await supabase
+          .from("darija_phrases")
+          .select("*")
+          .eq("category->english", scenario)
+          .order("likes", { ascending: false });
 
-      if (error) throw error;
-      if (data) {
-        setPhrases(data as DarijaPhrase[]);
-        setCurrentPhraseIndex(0);
-        // Cache phrases for offline use
-        offlineManager.cacheEssentialPhrases(data as DarijaPhrase[]);
+        if (error) throw error;
+        if (data) {
+          setPhrases(data as DarijaPhrase[]);
+          setCurrentPhraseIndex(0);
+          offlineManager.cacheEssentialPhrases(data as DarijaPhrase[]);
+        }
+      } catch (error) {
+        console.error("Error loading phrases:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load phrases for this scenario",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error loading phrases:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load phrases for this scenario",
-        variant: "destructive",
-      });
-    }
-  };
+    },
+    [isOffline, setPhrases, setCurrentPhraseIndex, toast]
+  );
 
   const handleAIHelp = async () => {
     if (!phrases[currentPhraseIndex]) return;
@@ -325,7 +327,7 @@ export function TouristDarija() {
         {isOffline && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <p className="text-yellow-800">
-              You're offline. Using saved phrases only.
+              {"You're offline. Using saved phrases only."}
             </p>
           </div>
         )}
@@ -378,7 +380,7 @@ export function TouristDarija() {
               <div className="flex justify-center items-center gap-3 mb-4">
                 <p className="text-3xl font-arabic">{currentPhrase.darija}</p>
                 <button className="p-2 hover:bg-gray-100 rounded-full">
-                  <VolumeUp className="w-6 h-6 text-gray-600" />
+                  <Volume2 className="w-6 h-6 text-gray-600" />
                 </button>
               </div>
               <p className="text-lg text-gray-600 mb-2">

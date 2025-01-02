@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,7 +23,7 @@ import {
   UtensilsCrossed, // instead of Utensils
   Volume2,
 } from "lucide-react";
-import React from "react";
+import React, { useCallback } from "react";
 
 interface AIMode {
   id: string;
@@ -147,7 +146,7 @@ interface AIAssistantProps {
   initialMode?: string;
 }
 
-export function AIAssistant() {
+export function AIAssistant({ initialMode }: AIAssistantProps) {
   const [selectedMode, setSelectedMode] = React.useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = React.useState<string | null>(
     null
@@ -178,11 +177,11 @@ export function AIAssistant() {
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedScenario) {
       loadPhrases(selectedScenario);
     }
-  }, [selectedScenario]);
+  }, [selectedScenario, loadPhrases]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -192,36 +191,40 @@ export function AIAssistant() {
     scrollToBottom();
   }, [messages]);
 
-  const loadPhrases = async (scenario: string) => {
-    try {
-      if (isOffline) {
-        const cachedPhrases = offlineManager.getCachedPhrases();
-        setPhrases(
-          cachedPhrases.filter((p) => p.category.english === scenario)
-        );
-        return;
-      }
+  const loadPhrases = useCallback(
+    async (scenario: string) => {
+      try {
+        if (isOffline) {
+          const cachedPhrases = offlineManager.getCachedPhrases();
+          setPhrases(
+            cachedPhrases.filter((p) => p.category.english === scenario)
+          );
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from("darija_phrases")
-        .select("*")
-        .eq("category->english", scenario)
-        .order("likes", { ascending: false });
+        const { data, error } = await supabase
+          .from("darija_phrases")
+          .select("*")
+          .eq("category->english", scenario)
+          .order("likes", { ascending: false });
 
-      if (error) throw error;
-      if (data) {
-        setPhrases(data as DarijaPhrase[]);
-        setCurrentPhraseIndex(0);
-        offlineManager.cacheEssentialPhrases(data as DarijaPhrase[]);
+        if (error) throw error;
+        if (data) {
+          setPhrases(data as DarijaPhrase[]);
+          setCurrentPhraseIndex(0);
+          offlineManager.cacheEssentialPhrases(data as DarijaPhrase[]);
+        }
+      } catch (error) {
+        console.error("Error loading phrases:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load phrases for this scenario",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error loading phrases:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load phrases for this scenario",
-      });
-    }
-  };
+    },
+    [isOffline, setPhrases, setCurrentPhraseIndex, toast]
+  );
 
   const handleSendMessage = async (messageText: string = inputMessage) => {
     if (!messageText.trim() || !selectedMode || isLoading) return;

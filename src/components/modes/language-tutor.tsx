@@ -1,6 +1,6 @@
 // src/components/modes/language-tutor.tsx
 import { AIAssistant } from "@/components/core/ai-assistant";
-//import { LearningCard } from "@/components/learn/LearningCard";
+import { LearningCard } from "@/components/learn/LearningCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -8,7 +8,7 @@ import {
   getPhrases,
   updateLearningProgress,
 } from "@/lib/db/queries";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface LearningMode {
   key: string;

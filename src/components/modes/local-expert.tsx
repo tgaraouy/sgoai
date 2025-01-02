@@ -86,7 +86,7 @@ export function LocalExpert() {
       {selectedCity && (
         <>
           <div>
-            <h3 className="font-medium mb-2">What are you looking for?</h3>
+            <h3 className="font-medium mb-2">{"What are you looking for?"}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {categories.map((category) => (
                 <Card
@@ -103,15 +103,15 @@ export function LocalExpert() {
           </div>
 
           <div>
-            <h3 className="font-medium mb-2">Best Times to Visit:</h3>
+            <h3 className="font-medium mb-2">{"Best Times to Visit:"}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="p-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
                   <div>
-                    <h4 className="font-medium">Today's Recommendation</h4>
+                    <h4 className="font-medium">{"Today's Recommendation"}</h4>
                     <p className="text-sm text-gray-600">
-                      Best times to visit attractions and avoid crowds
+                      {"Best times to visit attractions and avoid crowds"}
                     </p>
                   </div>
                 </div>

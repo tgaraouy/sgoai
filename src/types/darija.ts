@@ -39,17 +39,21 @@ export interface DarijaPhrase {
   id: string;
   darija: string;
   phonetic_transcription: string;
-  translations: Record<string, string>;
-  category: Record<string, string>;
-  scenario: Record<string, string>;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  picture_link: string | null;
-  likes: number;
-  cultural_context: CulturalContext;
-  meaning_details: MeaningDetails;
-  usage_contexts: UsageContexts;
-  related_content: RelatedContent;
-  metadata: PhraseMetadata;
-  created_at: string;
-  updated_at: string;
+  translations: {
+    english: string;
+    french: string;
+  };
+  category: {
+    english: string;
+  };
+  scenario: {
+    english: string;
+  };
+  usage_contexts: {
+    situational_examples: string[];
+  };
+  difficulty?: string;
+  picture_link?: string;
+  likes?: number;
+  cultural_context?: string;
 }
